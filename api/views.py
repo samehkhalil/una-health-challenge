@@ -11,6 +11,8 @@ import os
 from rest_framework.exceptions import ValidationError
 
 class LevelList(ListAPIView):
+    """ Level List endpoint """
+
     serializer_class = LevelSerializer
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ['timestamp', 'glucose_value']
@@ -26,6 +28,7 @@ class LevelList(ListAPIView):
         user_id = self.request.query_params.get('user_id')
 
         if user_id is None:
+            # user_id is required
             raise ValidationError(detail='User ID required')
 
         queryset = queryset.filter(user_id=user_id)
@@ -41,11 +44,13 @@ class LevelList(ListAPIView):
         return queryset
 
 class LevelDetail(RetrieveAPIView):
+    """ Level Detail endpoint """
     queryset = Level.objects.all()
     serializer_class = LevelSerializer
 
 
 class LevelDataPrePopulate(APIView):
+    """ PrePopulate POST endpoint """
     
     def post(self, request, format=None):
         Level.objects.all().delete()
@@ -57,9 +62,15 @@ class LevelDataPrePopulate(APIView):
         for user in users:
             filename = os.path.join(settings.BASE_DIR, f'sample-data/{user}.csv')
             data = pandas.read_csv(filename, skiprows=1)
+            
+            # keep only columns that are of importance to our use case
             columns = ['Gerätezeitstempel', 'Glukosewert-Verlauf mg/dL']
             df = data[columns]
-            df.dropna(inplace=True)
+            
+            # drop all records containing empty values
+            df = df.dropna()
+
+            # correct datetime format
             df[columns[0]] = pandas.to_datetime(df[columns[0]])
             records = []
             for _, row in df.iterrows():
@@ -71,5 +82,6 @@ class LevelDataPrePopulate(APIView):
                     )
                 )
             Level.objects.bulk_create(records)
+            
         return Response(status=status.HTTP_201_CREATED)
 
