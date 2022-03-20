@@ -4,4 +4,5 @@ from . import views
 urlpatterns = [
     path('levels/', views.LevelList.as_view()),
     path('levels/<str:pk>', views.LevelDetail.as_view()),
+    path('prepopulate/', views.LevelDataPrePopulate.as_view()),
 ]
